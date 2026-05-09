@@ -89,6 +89,7 @@
       border-top: 1px solid #eee;
       display: flex;
       align-items: center;
+      justify-content: space-between;
       height: 4.5rem;
       padding: 0 1rem;
       padding-bottom: env(safe-area-inset-bottom);
@@ -112,7 +113,50 @@
       transition: background 0.15s;
     }
     .bottom-nav .nav-back:active { background: #e8e8e8; }
-    .bottom-nav .nav-back.hidden { visibility: hidden; pointer-events: none; }
+    .bottom-nav .nav-back.hidden { display: none; }
+
+    .nav-home-actions {
+      display: none;
+      width: 100%;
+      gap: 0.75rem;
+    }
+    .nav-home-actions.visible { display: flex; }
+    .nav-action-btn {
+      flex: 1;
+      height: 3rem;
+      border: none;
+      border-radius: 12px;
+      background: #f4f4f4;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #333;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .nav-action-btn:active { background: #e8e8e8; }
+
+    /* Home title — large, takes up the top space */
+    .home-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 8rem;
+      margin-top: 0.5rem;
+      color: #111;
+      text-align: center;
+    }
+
+    #screen-home {
+      padding-top: 8rem;
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #aaa;
+      margin-bottom: 0.75rem;
+    }
 
     /* Push content above fixed bottom nav */
     body { padding-bottom: 5.5rem; }
@@ -308,18 +352,6 @@
     .add-set-btn:hover { border-color: #aaa; color: #555; }
 
     /* Settings screen */
-    .settings-btn {
-      width: 100%;
-      padding: 0.75rem;
-      background: white;
-      color: #444;
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      font-size: 0.95rem;
-      cursor: pointer;
-      margin-bottom: 1rem;
-    }
-    .settings-btn:hover { background: #f0f0f0; }
 
     .settings-day-card {
       background: white;
@@ -585,9 +617,8 @@
 
   <!-- SCREEN 1: Weekly overview -->
   <div id="screen-home" class="screen active">
-    <h1>💪 My Workout Week</h1>
-    <button class="history-btn" onclick="openHistory()">📋 View Session History</button>
-    <button class="settings-btn" onclick="openSettings()">⚙️ Edit Schedule</button>
+    <h1 class="home-title">💪 My Workout Week</h1>
+    <p class="section-label">This week</p>
     <div id="day-list"></div>
   </div>
 
@@ -643,6 +674,10 @@
   <!-- Bottom navigation bar -->
   <div class="bottom-nav" id="bottom-nav">
     <button class="nav-back hidden" id="nav-back-btn" onclick="navBack()">← Back</button>
+    <div class="nav-home-actions" id="nav-home-actions">
+      <button class="nav-action-btn" onclick="openHistory()">📋 History</button>
+      <button class="nav-action-btn" onclick="openSettings()">⚙️ Schedule</button>
+    </div>
   </div>
 
   <!-- Toast notification -->
@@ -908,8 +943,10 @@
 
     function updateBottomNav(screenId, backFn) {
       const backBtn = document.getElementById('nav-back-btn');
+      const homeActions = document.getElementById('nav-home-actions');
       const isHome = screenId === 'screen-home';
       backBtn.classList.toggle('hidden', isHome);
+      homeActions.classList.toggle('visible', isHome);
       backBtn._backFn = backFn || null;
     }
 
@@ -930,6 +967,9 @@
 
     // Seed one history entry so first back gesture is interceptable
     history.pushState({ screen: 'screen-home' }, '');
+
+    // Show home actions on initial load
+    updateBottomNav('screen-home', null);
 
     function goHome() {
       document.querySelectorAll('.screen').forEach(function(s) {
