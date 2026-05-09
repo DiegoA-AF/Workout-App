@@ -58,16 +58,49 @@
       letter-spacing: 0.05em;
     }
 
-    .back-btn {
-      background: none;
-      border: none;
-      font-size: 0.95rem;
-      color: #555;
-      cursor: pointer;
-      margin-bottom: 1rem;
-      padding: 0;
+    /* Bottom nav bar */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 480px;
+      background: white;
+      border-top: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      height: 3.5rem;
+      z-index: 100;
     }
-    .back-btn:hover { color: #000; }
+    .bottom-nav .nav-back {
+      flex: 1;
+      height: 100%;
+      border: none;
+      background: none;
+      font-size: 1rem;
+      color: #444;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+    }
+    .bottom-nav .nav-back:active { background: #f4f4f4; }
+    .bottom-nav .nav-back.hidden { visibility: hidden; pointer-events: none; }
+    .bottom-nav .nav-label {
+      font-size: 0.8rem;
+      color: #aaa;
+      padding-right: 1rem;
+      text-align: right;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Push content above fixed bottom nav */
+    body { padding-bottom: 4.5rem; }
 
     .exercise-block {
       background: white;
@@ -535,7 +568,6 @@
 
   <!-- SCREEN 2: Day session -->
   <div id="screen-day" class="screen">
-    <button class="back-btn" onclick="goHome()">← Back</button>
     <h1 id="day-title"></h1>
     <div id="exercise-list"></div>
     <button class="save-btn" onclick="saveSession()">Save Session</button>
@@ -543,21 +575,18 @@
 
   <!-- SCREEN 3: History -->
   <div id="screen-history" class="screen">
-    <button class="back-btn" onclick="goHome()">← Back</button>
     <h1>📋 Session History</h1>
     <div id="history-list"></div>
   </div>
 
   <!-- SCREEN 4: Settings — schedule overview -->
   <div id="screen-settings" class="screen">
-    <button class="back-btn" onclick="goHome()">← Back</button>
     <h1>⚙️ Edit Schedule</h1>
     <div id="settings-day-list"></div>
   </div>
 
   <!-- SCREEN 5: Day editor -->
   <div id="screen-day-editor" class="screen">
-    <button class="back-btn" onclick="openSettings()">← Back</button>
     <h1 id="editor-title"></h1>
 
     <div class="field-group">
@@ -584,6 +613,12 @@
     </div>
 
     <button class="save-btn" onclick="saveDayEdits()">Save Day</button>
+  </div>
+
+  <!-- Bottom navigation bar -->
+  <div class="bottom-nav" id="bottom-nav">
+    <button class="nav-back hidden" id="nav-back-btn" onclick="navBack()">← Back</button>
+    <span class="nav-label" id="nav-label"></span>
   </div>
 
   <!-- Toast notification -->
@@ -647,7 +682,7 @@
         container.appendChild(card);
       });
 
-      showScreen('screen-settings');
+      showScreen('screen-settings', goHome);
     }
 
     // ── Day editor ───────────────────────────────────────────
@@ -669,7 +704,7 @@
 
       renderEditorExercises(entry.exercises || []);
       document.getElementById('new-ex-input').value = '';
-      showScreen('screen-day-editor');
+      showScreen('screen-day-editor', openSettings);
     }
 
     function renderEditorExercises(exercises) {
@@ -824,17 +859,62 @@
 
     buildDayList();
 
-    // ── Navigation ──────────────────────────────────────────
+    // ── Navigation with History API ──────────────────────────
 
-    function showScreen(id) {
+    const SCREEN_LABELS = {
+      'screen-home': '',
+      'screen-day': 'Workout',
+      'screen-history': 'History',
+      'screen-settings': 'Edit Schedule',
+      'screen-day-editor': 'Edit Day'
+    };
+
+    function showScreen(id, backFn) {
       document.querySelectorAll('.screen').forEach(function(s) {
         s.classList.remove('active');
       });
       document.getElementById(id).classList.add('active');
       window.scrollTo(0, 0);
+      updateBottomNav(id, backFn);
+      history.pushState({ screen: id }, '');
     }
 
-    function goHome() { showScreen('screen-home'); }
+    function updateBottomNav(screenId, backFn) {
+      const backBtn = document.getElementById('nav-back-btn');
+      const label = document.getElementById('nav-label');
+      const isHome = screenId === 'screen-home';
+      backBtn.classList.toggle('hidden', isHome);
+      label.textContent = SCREEN_LABELS[screenId] || '';
+      backBtn._backFn = backFn || null;
+    }
+
+    function navBack() {
+      const backBtn = document.getElementById('nav-back-btn');
+      if (backBtn._backFn) backBtn._backFn();
+      else goHome();
+    }
+
+    // Intercept Android back gesture / browser back button
+    window.addEventListener('popstate', function() {
+      const backBtn = document.getElementById('nav-back-btn');
+      if (!backBtn.classList.contains('hidden')) {
+        navBack();
+        history.pushState({ screen: 'current' }, '');
+      }
+    });
+
+    // Seed one history entry so first back gesture is interceptable
+    history.pushState({ screen: 'screen-home' }, '');
+
+    function goHome() {
+      document.querySelectorAll('.screen').forEach(function(s) {
+        s.classList.remove('active');
+      });
+      document.getElementById('screen-home').classList.add('active');
+      window.scrollTo(0, 0);
+      updateBottomNav('screen-home', null);
+      history.pushState({ screen: 'screen-home' }, '');
+    }
 
     // ── Open a day session ───────────────────────────────────
 
@@ -921,7 +1001,7 @@
         list.appendChild(block);
       });
 
-      showScreen('screen-day');
+      showScreen('screen-day', goHome);
     }
 
     function makeSetRow(exerciseName, setNum, defaultReps, defaultWeight, container) {
@@ -1093,7 +1173,7 @@
 
       if (history.length === 0) {
         container.innerHTML = '<p class="empty-history">No sessions saved yet.<br>Complete your first workout!</p>';
-        showScreen('screen-history');
+        showScreen('screen-history', goHome);
         return;
       }
 
@@ -1255,7 +1335,7 @@
         container.appendChild(entry);
       });
 
-      showScreen('screen-history');
+      showScreen('screen-history', goHome);
     }
 
     // ── Storage helpers ──────────────────────────────────────
