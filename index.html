@@ -36,20 +36,32 @@
     .rest { font-style: italic; cursor: default; }
 
     .day-card.today {
-      background: #222;
-      border-color: #222;
+      background: #1a1a1a;
+      border-color: #1a1a1a;
       color: white;
+      padding: 1.25rem;
     }
-    .day-card.today h2 { color: white; }
-    .day-card.today p { color: #aaa; }
-    .day-card.today:hover { background: #333; }
-    .day-card.today li {
-      font-size: 0.85rem;
-      color: rgba(255,255,255,0.8);
-      padding: 0.2rem 0;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+    .day-card.today:hover { background: #2a2a2a; }
+    .day-card.today h2 { color: white; font-size: 1.1rem; margin-bottom: 0.9rem; }
+    .day-card.today .today-ex-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
     }
-    .day-card.today li:last-child { border-bottom: none; }
+    .day-card.today .today-ex-row:last-child { border-bottom: none; }
+    .day-card.today .today-ex-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: white;
+      flex-shrink: 0;
+    }
+    .day-card.today .today-ex-meta {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.4);
+      white-space: nowrap;
+    }
 
     .today-badge {
       display: inline-block;
@@ -830,13 +842,30 @@
         if (isRest) {
           card.innerHTML = '<h2>' + entry.day + badge + '</h2><p class="rest">Rest day</p>';
         } else if (isToday) {
-          const exList = entry.exercises.map(function(ex) {
-            return '<li>' + ex + '</li>';
+          const lastSession = getLastSession(entry.day);
+
+          const rows = entry.exercises.map(function(ex) {
+            let meta = '';
+            if (lastSession && lastSession.exercises[ex]) {
+              const sets = lastSession.exercises[ex];
+              const setCount = sets.length;
+              // Average reps across sets
+              const avgReps = Math.round(
+                sets.reduce(function(sum, s) { return sum + parseFloat(s.reps || 0); }, 0) / setCount
+              );
+              const weight = parseFloat(sets[0].weight || 0);
+              meta = setCount + ' sets · ' + avgReps + ' reps' + (weight > 0 ? ' · ' + weight + 'kg' : '');
+            } else {
+              meta = 'No previous data';
+            }
+            return '<div class="today-ex-row">' +
+              '<span class="today-ex-name">' + ex + '</span>' +
+              '<span class="today-ex-meta">' + meta + '</span>' +
+              '</div>';
           }).join('');
+
           card.innerHTML =
-            '<h2>' + entry.day + ' — ' + entry.type + badge + '</h2>' +
-            '<ul style="list-style:none;margin-top:0.6rem;padding:0;display:flex;flex-direction:column;gap:0.3rem;">' +
-            exList + '</ul>';
+            '<h2>' + entry.day + ' — ' + entry.type + badge + '</h2>' + rows;
           card.onclick = function() { openDay(entry.day, entry.type, entry.exercises); };
         } else {
           card.innerHTML = '<h2>' + entry.day + ' — ' + entry.type + badge + '</h2><p>' + entry.exercises.length + ' exercises</p>';
