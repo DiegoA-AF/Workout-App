@@ -123,11 +123,41 @@
       padding: 1rem;
       margin-bottom: 1rem;
       border: 1px solid #ddd;
+      transition: opacity 0.2s, border-color 0.2s;
     }
-    .exercise-block h3 {
-      font-size: 1rem;
+    .exercise-block.skipped {
+      opacity: 0.4;
+      border-color: #eee;
+      border-style: dashed;
+    }
+    .exercise-block-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       margin-bottom: 0.75rem;
+    }
+    .exercise-block-header h3 {
+      font-size: 1rem;
       color: #222;
+      margin: 0;
+    }
+    .skip-btn {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #aaa;
+      background: none;
+      border: 1px solid #ddd;
+      border-radius: 999px;
+      padding: 0.2rem 0.65rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .skip-btn:active { background: #f4f4f4; }
+    .skip-btn.skipped {
+      color: #ef4444;
+      border-color: #fecaca;
+      background: #fee2e2;
     }
 
     /* Last session — shown as greyed-out rows above current rows */
@@ -140,7 +170,7 @@
     }
     .prev-row {
       display: grid;
-      grid-template-columns: 2.5rem 1fr 1fr 2.5rem;
+      grid-template-columns: 2.5rem 1fr 1fr;
       gap: 0.5rem;
       align-items: center;
       margin-bottom: 0.3rem;
@@ -174,7 +204,7 @@
     /* Current set rows */
     .set-col-headers {
       display: grid;
-      grid-template-columns: 2.5rem 1fr 1fr 2.5rem;
+      grid-template-columns: 2.5rem 1fr 1fr;
       gap: 0.5rem;
       font-size: 0.72rem;
       color: #bbb;
@@ -220,28 +250,6 @@
     .stepper input::-webkit-outer-spin-button,
     .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; }
 
-    /* Done button */
-    .done-btn {
-      width: 2.5rem;
-      height: 2.5rem;
-      border-radius: 50%;
-      border: 2px solid #ddd;
-      background: white;
-      font-size: 1rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s;
-      margin: 0 auto;
-      color: transparent;
-    }
-    .done-btn.checked {
-      background: #22c55e;
-      border-color: #22c55e;
-      color: white;
-    }
-
     /* Swipe to delete */
     .set-row-wrap {
       position: relative;
@@ -269,7 +277,7 @@
     .set-row {
       position: relative;
       display: grid;
-      grid-template-columns: 2.5rem 1fr 1fr 2.5rem;
+      grid-template-columns: 2.5rem 1fr 1fr;
       gap: 0.5rem;
       align-items: center;
       background: white;
@@ -645,11 +653,11 @@
 
     const DEFAULT_SCHEDULE = [
       { day: 'Monday',    type: 'Push',        exercises: ['Push-ups','Dumbbell Shoulder Press','Lateral Raises','Tricep Overhead Extension','Chest Squeeze Press'] },
-      { day: 'Tuesday',   type: 'Pull',        exercises: ['Dumbbell Bent-Over Row','Renegade Row','Bicep Curls','Superman Holds','Hammer Curls'] },
+      { day: 'Tuesday',   type: 'Pull',        exercises: ['Dumbbell Bent-Over Row','Dumbbell Chest-Supported Row','Bicep Curls','Good Mornings','Hammer Curls'] },
       { day: 'Wednesday', type: 'Legs + Core', exercises: ['Dumbbell Squats','Reverse Lunges','Glute Bridges','Plank','Dead Bug'] },
       { day: 'Thursday',  type: null,          exercises: [] },
       { day: 'Friday',    type: 'Push',        exercises: ['Push-ups','Dumbbell Shoulder Press','Lateral Raises','Tricep Overhead Extension','Chest Squeeze Press'] },
-      { day: 'Saturday',  type: 'Pull',        exercises: ['Dumbbell Bent-Over Row','Renegade Row','Bicep Curls','Superman Holds','Hammer Curls'] },
+      { day: 'Saturday',  type: 'Pull',        exercises: ['Dumbbell Bent-Over Row','Dumbbell Chest-Supported Row','Bicep Curls','Good Mornings','Hammer Curls'] },
       { day: 'Sunday',    type: null,          exercises: [] },
     ];
 
@@ -949,11 +957,26 @@
       exercises.forEach(function(name) {
         const block = document.createElement('div');
         block.className = 'exercise-block';
+        block.dataset.exercise = name;
 
-        // Exercise title
+        // Header row: title + skip button
+        const header = document.createElement('div');
+        header.className = 'exercise-block-header';
+
         const title = document.createElement('h3');
         title.textContent = name;
-        block.appendChild(title);
+        header.appendChild(title);
+
+        const skipBtn = document.createElement('button');
+        skipBtn.className = 'skip-btn';
+        skipBtn.textContent = 'Skip';
+        skipBtn.onclick = function() {
+          const isSkipped = block.classList.toggle('skipped');
+          skipBtn.textContent = isSkipped ? 'Undo' : 'Skip';
+          skipBtn.classList.toggle('skipped', isSkipped);
+        };
+        header.appendChild(skipBtn);
+        block.appendChild(header);
 
         // Previous session rows (greyed out reference)
         if (lastSession && lastSession.exercises[name]) {
@@ -969,8 +992,7 @@
             prevRow.innerHTML =
               '<span class="set-num">' + (i+1) + '</span>' +
               '<div class="prev-val">' + s.reps + '<span class="prev-unit"> reps</span></div>' +
-              '<div class="prev-val">' + s.weight + '<span class="prev-unit"> kg</span></div>' +
-              '<span></span>';
+              '<div class="prev-val">' + s.weight + '<span class="prev-unit"> kg</span></div>';
             block.appendChild(prevRow);
           });
 
@@ -982,7 +1004,7 @@
         // Column headers
         const headers = document.createElement('div');
         headers.className = 'set-col-headers';
-        headers.innerHTML = '<span>#</span><span>Reps</span><span>Weight kg</span><span>✓</span>';
+        headers.innerHTML = '<span>#</span><span>Reps</span><span>Weight kg</span>';
         block.appendChild(headers);
 
         // Container for swipeable set rows
@@ -1051,12 +1073,6 @@
 
       row.appendChild(makeStepper('reps-input', defaultReps, 1, 1));
       row.appendChild(makeStepper('weight-input', defaultWeight, 0.5, 0));
-
-      const doneBtn = document.createElement('button');
-      doneBtn.className = 'done-btn';
-      doneBtn.textContent = '✓';
-      doneBtn.onclick = function() { this.classList.toggle('checked'); };
-      row.appendChild(doneBtn);
 
       wrap.appendChild(row);
 
@@ -1154,13 +1170,14 @@
       };
 
       currentExercises.forEach(function(name) {
+        const block = document.querySelector('.exercise-block[data-exercise="' + name + '"]');
+        if (block && block.classList.contains('skipped')) return; // exclude skipped
         const rows = document.querySelectorAll('.set-row[data-exercise="' + name + '"]');
         sessionData.exercises[name] = [];
         rows.forEach(function(row) {
           const reps = row.querySelector('.reps-input').value || 0;
           const weight = row.querySelector('.weight-input').value || 0;
-          const done = row.querySelector('.done-btn').classList.contains('checked');
-          sessionData.exercises[name].push({ reps: reps, weight: weight, done: done });
+          sessionData.exercises[name].push({ reps: reps, weight: weight });
         });
       });
 
@@ -1232,7 +1249,7 @@
           session.exercises[exName].forEach(function(s, i) {
             const line = document.createElement('div');
             line.className = 'set-line';
-            line.textContent = 'Set ' + (i+1) + ': ' + s.reps + ' reps @ ' + s.weight + 'kg' + (s.done ? ' ✓' : '');
+            line.textContent = 'Set ' + (i+1) + ': ' + s.reps + ' reps @ ' + s.weight + 'kg';
             entry.appendChild(line);
           });
 
