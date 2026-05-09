@@ -43,6 +43,13 @@
     .day-card.today h2 { color: white; }
     .day-card.today p { color: #aaa; }
     .day-card.today:hover { background: #333; }
+    .day-card.today li {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.8);
+      padding: 0.2rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .day-card.today li:last-child { border-bottom: none; }
 
     .today-badge {
       display: inline-block;
@@ -67,40 +74,53 @@
       width: 100%;
       max-width: 480px;
       background: white;
-      border-top: 1px solid #ddd;
+      border-top: 1px solid #eee;
       display: flex;
       align-items: center;
-      height: 3.5rem;
+      height: 4.5rem;
+      padding: 0 0.5rem;
+      padding-bottom: env(safe-area-inset-bottom);
       z-index: 100;
+      gap: 0.5rem;
     }
     .bottom-nav .nav-back {
-      flex: 1;
-      height: 100%;
-      border: none;
-      background: none;
-      font-size: 1rem;
-      color: #444;
-      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.35rem;
+      gap: 0.4rem;
+      height: 3rem;
+      padding: 0 1.25rem;
+      border: none;
+      border-radius: 12px;
+      background: #f4f4f4;
+      font-size: 1rem;
+      font-weight: 500;
+      color: #333;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
     }
-    .bottom-nav .nav-back:active { background: #f4f4f4; }
+    .bottom-nav .nav-back:active { background: #e8e8e8; }
     .bottom-nav .nav-back.hidden { visibility: hidden; pointer-events: none; }
     .bottom-nav .nav-label {
-      font-size: 0.8rem;
-      color: #aaa;
-      padding-right: 1rem;
-      text-align: right;
       flex: 1;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #222;
+      text-align: center;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    /* Spacer to balance the back button on the right */
+    .bottom-nav .nav-spacer {
+      width: 80px;
+      flex-shrink: 0;
+    }
+    .bottom-nav .nav-back.hidden + .bottom-nav .nav-label { text-align: center; }
 
     /* Push content above fixed bottom nav */
-    body { padding-bottom: 4.5rem; }
+    body { padding-bottom: 5.5rem; }
 
     .exercise-block {
       background: white;
@@ -619,6 +639,7 @@
   <div class="bottom-nav" id="bottom-nav">
     <button class="nav-back hidden" id="nav-back-btn" onclick="navBack()">← Back</button>
     <span class="nav-label" id="nav-label"></span>
+    <div class="nav-spacer" id="nav-spacer"></div>
   </div>
 
   <!-- Toast notification -->
@@ -848,6 +869,15 @@
 
         if (isRest) {
           card.innerHTML = '<h2>' + entry.day + badge + '</h2><p class="rest">Rest day</p>';
+        } else if (isToday) {
+          const exList = entry.exercises.map(function(ex) {
+            return '<li>' + ex + '</li>';
+          }).join('');
+          card.innerHTML =
+            '<h2>' + entry.day + ' — ' + entry.type + badge + '</h2>' +
+            '<ul style="list-style:none;margin-top:0.6rem;padding:0;display:flex;flex-direction:column;gap:0.3rem;">' +
+            exList + '</ul>';
+          card.onclick = function() { openDay(entry.day, entry.type, entry.exercises); };
         } else {
           card.innerHTML = '<h2>' + entry.day + ' — ' + entry.type + badge + '</h2><p>' + entry.exercises.length + ' exercises</p>';
           card.onclick = function() { openDay(entry.day, entry.type, entry.exercises); };
@@ -882,8 +912,10 @@
     function updateBottomNav(screenId, backFn) {
       const backBtn = document.getElementById('nav-back-btn');
       const label = document.getElementById('nav-label');
+      const spacer = document.getElementById('nav-spacer');
       const isHome = screenId === 'screen-home';
       backBtn.classList.toggle('hidden', isHome);
+      spacer.style.visibility = isHome ? 'hidden' : 'visible';
       label.textContent = SCREEN_LABELS[screenId] || '';
       backBtn._backFn = backFn || null;
     }
