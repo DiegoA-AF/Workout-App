@@ -78,10 +78,9 @@
       display: flex;
       align-items: center;
       height: 4.5rem;
-      padding: 0 0.5rem;
+      padding: 0 1rem;
       padding-bottom: env(safe-area-inset-bottom);
       z-index: 100;
-      gap: 0.5rem;
     }
     .bottom-nav .nav-back {
       display: flex;
@@ -89,7 +88,7 @@
       justify-content: center;
       gap: 0.4rem;
       height: 3rem;
-      padding: 0 1.25rem;
+      padding: 0 1.5rem;
       border: none;
       border-radius: 12px;
       background: #f4f4f4;
@@ -102,22 +101,6 @@
     }
     .bottom-nav .nav-back:active { background: #e8e8e8; }
     .bottom-nav .nav-back.hidden { visibility: hidden; pointer-events: none; }
-    .bottom-nav .nav-label {
-      flex: 1;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #222;
-      text-align: center;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    /* Spacer to balance the back button on the right */
-    .bottom-nav .nav-spacer {
-      width: 80px;
-      flex-shrink: 0;
-    }
-    .bottom-nav .nav-back.hidden + .bottom-nav .nav-label { text-align: center; }
 
     /* Push content above fixed bottom nav */
     body { padding-bottom: 5.5rem; }
@@ -359,18 +342,20 @@
     .ex-edit-row {
       display: flex;
       align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .ex-edit-pill {
+      flex: 1;
+      display: flex;
+      align-items: center;
       gap: 0.5rem;
       background: white;
       border: 1px solid #eee;
       border-radius: 10px;
       padding: 0.65rem 0.75rem;
-      margin-bottom: 0.5rem;
       font-size: 0.9rem;
       color: #333;
-      position: relative;
-      overflow: hidden;
-      transition: transform 0.2s ease;
-      touch-action: pan-y;
     }
     .ex-edit-row .drag-handle {
       color: #ccc;
@@ -380,22 +365,22 @@
     }
     .ex-edit-name { flex: 1; }
 
-    .ex-edit-delete-reveal {
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      width: 5rem;
-      background: #ef4444;
+    .ex-delete-btn {
+      flex-shrink: 0;
+      width: 2.4rem;
+      height: 2.4rem;
+      border-radius: 50%;
+      border: none;
+      background: #fee2e2;
+      color: #ef4444;
+      font-size: 1.1rem;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      letter-spacing: 0.03em;
+      transition: background 0.15s;
     }
+    .ex-delete-btn:active { background: #fecaca; }
 
     .add-ex-row {
       display: flex;
@@ -638,8 +623,6 @@
   <!-- Bottom navigation bar -->
   <div class="bottom-nav" id="bottom-nav">
     <button class="nav-back hidden" id="nav-back-btn" onclick="navBack()">← Back</button>
-    <span class="nav-label" id="nav-label"></span>
-    <div class="nav-spacer" id="nav-spacer"></div>
   </div>
 
   <!-- Toast notification -->
@@ -735,54 +718,31 @@
       exercises.forEach(function(name, i) {
         const row = document.createElement('div');
         row.className = 'ex-edit-row';
-        row.dataset.index = i;
+
+        const pill = document.createElement('div');
+        pill.className = 'ex-edit-pill';
 
         const handle = document.createElement('span');
         handle.className = 'drag-handle';
         handle.textContent = '≡';
-        row.appendChild(handle);
+        pill.appendChild(handle);
 
         const label = document.createElement('span');
         label.className = 'ex-edit-name';
         label.textContent = name;
-        row.appendChild(label);
+        pill.appendChild(label);
 
-        // Delete reveal
-        const del = document.createElement('div');
-        del.className = 'ex-edit-delete-reveal';
-        del.textContent = 'Delete';
-        del.onclick = function() {
+        row.appendChild(pill);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'ex-delete-btn';
+        delBtn.textContent = '×';
+        delBtn.onclick = function() {
           const current = getCurrentEditorExercises();
           current.splice(i, 1);
           renderEditorExercises(current);
         };
-        row.appendChild(del);
-
-        // Swipe to reveal delete
-        let startX = 0, currentX = 0, isSwiping = false;
-        const THRESHOLD = 60;
-
-        row.addEventListener('touchstart', function(e) {
-          startX = e.touches[0].clientX;
-          isSwiping = true;
-        }, { passive: true });
-
-        row.addEventListener('touchmove', function(e) {
-          if (!isSwiping) return;
-          currentX = e.touches[0].clientX - startX;
-          if (currentX > 0) currentX = 0;
-          row.style.transform = 'translateX(' + currentX + 'px)';
-        }, { passive: true });
-
-        row.addEventListener('touchend', function() {
-          isSwiping = false;
-          row.style.transform = currentX < -THRESHOLD ? 'translateX(-5rem)' : 'translateX(0)';
-          currentX = 0;
-        });
-
-        document.addEventListener('touchstart', function(e) {
-          if (!row.contains(e.target)) row.style.transform = 'translateX(0)';
-        }, { passive: true });
+        row.appendChild(delBtn);
 
         list.appendChild(row);
       });
@@ -911,12 +871,8 @@
 
     function updateBottomNav(screenId, backFn) {
       const backBtn = document.getElementById('nav-back-btn');
-      const label = document.getElementById('nav-label');
-      const spacer = document.getElementById('nav-spacer');
       const isHome = screenId === 'screen-home';
       backBtn.classList.toggle('hidden', isHome);
-      spacer.style.visibility = isHome ? 'hidden' : 'visible';
-      label.textContent = SCREEN_LABELS[screenId] || '';
       backBtn._backFn = backFn || null;
     }
 
