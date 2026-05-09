@@ -15,7 +15,6 @@
       margin: 0 auto;
       padding: 1rem;
     }
-    h1 { font-size: 1.4rem; margin-bottom: 1rem; }
     h2 { font-size: 1.1rem; margin-bottom: 0.75rem; }
 
     .screen { display: none; }
@@ -156,6 +155,17 @@
       letter-spacing: 0.08em;
       color: #aaa;
       margin-bottom: 0.75rem;
+    }
+
+    /* Shared title style for all non-home screens */
+    .screen-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #111;
+      text-align: center;
+      margin-top: 0.5rem;
+      margin-bottom: 8rem;
+      padding-top: 8rem;
     }
 
     /* Push content above fixed bottom nav */
@@ -624,26 +634,26 @@
 
   <!-- SCREEN 2: Day session -->
   <div id="screen-day" class="screen">
-    <h1 id="day-title"></h1>
+    <h1 id="day-title" class="screen-title"></h1>
     <div id="exercise-list"></div>
     <button class="save-btn" onclick="saveSession()">Save Session</button>
   </div>
 
   <!-- SCREEN 3: History -->
   <div id="screen-history" class="screen">
-    <h1>📋 Session History</h1>
+    <h1 class="screen-title">Session History</h1>
     <div id="history-list"></div>
   </div>
 
   <!-- SCREEN 4: Settings — schedule overview -->
   <div id="screen-settings" class="screen">
-    <h1>⚙️ Edit Schedule</h1>
+    <h1 class="screen-title">Edit Schedule</h1>
     <div id="settings-day-list"></div>
   </div>
 
   <!-- SCREEN 5: Day editor -->
   <div id="screen-day-editor" class="screen">
-    <h1 id="editor-title"></h1>
+    <h1 id="editor-title" class="screen-title"></h1>
 
     <div class="field-group">
       <div class="field-label">Workout type name</div>
