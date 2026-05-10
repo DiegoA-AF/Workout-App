@@ -447,7 +447,15 @@
       font-size: 0.9rem;
       color: #333;
     }
-    .drag-handle { color: #ccc; font-size: 1rem; cursor: grab; flex-shrink: 0; }
+    .drag-handle {
+      color: #ccc;
+      font-size: 1.3rem;
+      cursor: grab;
+      flex-shrink: 0;
+      padding: 0.4rem 0.5rem;
+      margin: -0.4rem -0.25rem;
+      touch-action: none;
+    }
     .ex-edit-name { flex: 1; }
     .ex-delete-btn {
       flex-shrink: 0;
@@ -1378,33 +1386,6 @@
       exercises.forEach(function(name, i) {
         const row = document.createElement('div');
         row.className = 'ex-edit-row';
-        row.draggable = true;
-
-        // ── Drag reorder ──
-        row.addEventListener('dragstart', function() {
-          dragSrc = row;
-          setTimeout(function() { row.classList.add('dragging'); }, 0);
-        });
-        row.addEventListener('dragend', function() {
-          row.classList.remove('dragging');
-          list.querySelectorAll('.ex-edit-row').forEach(function(r) { r.classList.remove('drag-over'); });
-        });
-        row.addEventListener('dragover', function(e) {
-          e.preventDefault();
-          list.querySelectorAll('.ex-edit-row').forEach(function(r) { r.classList.remove('drag-over'); });
-          if (row !== dragSrc) row.classList.add('drag-over');
-        });
-        row.addEventListener('drop', function(e) {
-          e.preventDefault();
-          if (dragSrc && dragSrc !== row) {
-            const allRows = Array.from(list.querySelectorAll('.ex-edit-row'));
-            const srcIdx = allRows.indexOf(dragSrc);
-            const tgtIdx = allRows.indexOf(row);
-            if (srcIdx < tgtIdx) list.insertBefore(dragSrc, row.nextSibling);
-            else list.insertBefore(dragSrc, row);
-          }
-          row.classList.remove('drag-over');
-        });
 
         // ── Touch drag (mobile) ──
         let touchDragY = 0;
