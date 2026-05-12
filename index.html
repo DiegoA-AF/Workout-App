@@ -514,6 +514,26 @@
     }
     .ex-edit-row.dragging { opacity: 0.4; }
     .ex-edit-row.drag-over { border-top: 2px solid #3b82f6; }
+    .ex-edit-row.pending-delete .ex-edit-pill {
+      opacity: 0.4;
+      text-decoration: line-through;
+    }
+    .ex-edit-row.pending-delete { background: #fff5f5; border-radius: 10px; }
+
+    /* Ghost row that follows finger */
+    .drag-ghost {
+      position: fixed;
+      left: 0;
+      right: 0;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 0 1rem;
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.85;
+      transform: scale(1.02);
+      transition: top 0s;
+    }
     .add-ex-row { display: flex; gap: 0.5rem; margin-top: 0.25rem; }
     .add-ex-input {
       flex: 1;
@@ -1387,19 +1407,34 @@
         const row = document.createElement('div');
         row.className = 'ex-edit-row';
 
-        // ── Touch drag (mobile) ──
-        let touchDragY = 0;
+        // ── Touch drag with ghost row ──
+        let ghost = null;
+        let isDraggingRow = false;
+
         row.addEventListener('touchstart', function(e) {
           if (!e.target.classList.contains('drag-handle')) return;
-          touchDragY = e.touches[0].clientY;
-          row.style.opacity = '0.5';
+          isDraggingRow = true;
+
+          // Create ghost clone
+          ghost = row.cloneNode(true);
+          ghost.className = 'ex-edit-row drag-ghost';
+          const rect = row.getBoundingClientRect();
+          ghost.style.top = rect.top + 'px';
+          ghost.style.width = rect.width + 'px';
+          document.body.appendChild(ghost);
+
+          row.style.opacity = '0.3';
         }, { passive: true });
+
         row.addEventListener('touchmove', function(e) {
-          if (!e.target.classList.contains('drag-handle')) return;
+          if (!isDraggingRow) return;
           e.preventDefault();
           const currentY = e.touches[0].clientY;
+
+          // Move ghost
+          if (ghost) ghost.style.top = (currentY - 30) + 'px';
+
           const allRows = Array.from(list.querySelectorAll('.ex-edit-row'));
-          // Find which row the finger is over
           let target = null;
           for (let r of allRows) {
             if (r === row) continue;
@@ -1409,14 +1444,16 @@
           if (target) {
             list.insertBefore(row, target);
           } else {
-            // Finger is below all rows — move to end
             const dropZone = list.lastElementChild;
             list.insertBefore(row, dropZone);
           }
         }, { passive: false });
-        row.addEventListener('touchend', function(e) {
-          if (!e.target.classList.contains('drag-handle')) return;
+
+        row.addEventListener('touchend', function() {
+          if (!isDraggingRow) return;
+          isDraggingRow = false;
           row.style.opacity = '';
+          if (ghost) { ghost.remove(); ghost = null; }
         }, { passive: true });
 
         const pill = document.createElement('div');
@@ -1485,15 +1522,17 @@
         };
         row.appendChild(editBtn);
 
-        // ── Delete button ──
+        // ── Soft delete button ──
         const delBtn = document.createElement('button');
         delBtn.className = 'ex-delete-btn';
         delBtn.textContent = '×';
         delBtn.onclick = function() {
-          const allRows = Array.from(list.querySelectorAll('.ex-edit-row'));
-          const current = getCurrentEditorExercises();
-          current.splice(allRows.indexOf(row), 1);
-          renderEditorExercises(current);
+          const isPending = row.classList.toggle('pending-delete');
+          delBtn.textContent = isPending ? '↩' : '×';
+          delBtn.style.background = isPending ? '#e8f0fe' : '';
+          delBtn.style.color = isPending ? '#3b82f6' : '';
+          // Hide edit button while pending delete
+          editBtn.style.display = isPending ? 'none' : '';
         };
         row.appendChild(delBtn);
 
@@ -1515,9 +1554,13 @@
     }
 
     function getCurrentEditorExercises() {
-      return Array.from(document.querySelectorAll('#editor-ex-list .ex-edit-name')).map(function(r) {
-        return r.textContent;
-      });
+      return Array.from(document.querySelectorAll('#editor-ex-list .ex-edit-row'))
+        .filter(function(row) { return !row.classList.contains('pending-delete'); })
+        .map(function(row) {
+          const nameEl = row.querySelector('.ex-edit-name');
+          return nameEl ? nameEl.textContent : null;
+        })
+        .filter(Boolean);
     }
 
     function addExercise() {
