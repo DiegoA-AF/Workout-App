@@ -375,6 +375,35 @@
     }
     .add-set-btn:hover { border-color: #aaa; color: #555; }
 
+    /* Exercise note */
+    .prev-note {
+      font-size: 0.8rem;
+      color: #aaa;
+      font-style: italic;
+      margin-top: 0.4rem;
+      padding: 0.4rem 0.5rem;
+      background: #f9f9f9;
+      border-radius: 8px;
+      border-left: 3px solid #ddd;
+    }
+    .note-textarea {
+      width: 100%;
+      margin-top: 0.75rem;
+      padding: 0.5rem 0.65rem;
+      border: 1px dashed #ccc;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-family: sans-serif;
+      color: #444;
+      background: white;
+      resize: none;
+      min-height: 2.5rem;
+      line-height: 1.4;
+      transition: border 0.15s;
+    }
+    .note-textarea:focus { outline: none; border-color: #aaa; border-style: solid; }
+    .note-textarea::placeholder { color: #ccc; }
+
     /* Summary card */
     .summary-card {
       background: white;
@@ -754,13 +783,17 @@
     }
 
     window.addEventListener('popstate', function() {
+      // Always re-push immediately so the stack never empties
+      history.pushState({ screen: 'current' }, '');
       const backBtn = document.getElementById('nav-back-btn');
       if (!backBtn.classList.contains('hidden')) {
         navBack();
-        history.pushState({ screen: 'current' }, '');
       }
     });
 
+    // Two entries: a permanent base + current screen
+    // The base ensures the app never runs out of browser history
+    history.replaceState({ screen: 'base' }, '');
     history.pushState({ screen: 'screen-home' }, '');
     updateBottomNav('screen-home', null);
 
@@ -912,6 +945,13 @@
             '<div class="prev-val">' + s.weight + '<span class="prev-unit"> kg</span></div>';
           block.appendChild(prevRow);
         });
+        // Show previous note if exists
+        if (lastSession.notes && lastSession.notes[name]) {
+          const prevNote = document.createElement('div');
+          prevNote.className = 'prev-note';
+          prevNote.textContent = '📝 ' + lastSession.notes[name];
+          block.appendChild(prevNote);
+        }
         const divider = document.createElement('hr');
         divider.className = 'divider';
         block.appendChild(divider);
@@ -950,6 +990,14 @@
         renumberRows(rowsContainer);
       };
       block.appendChild(addBtn);
+
+      // Note textarea
+      const noteArea = document.createElement('textarea');
+      noteArea.className = 'note-textarea';
+      noteArea.placeholder = 'Add a note for next time…';
+      noteArea.dataset.noteFor = name;
+      noteArea.rows = 2;
+      block.appendChild(noteArea);
 
       return block;
     }
@@ -1184,7 +1232,8 @@
         type: currentType,
         date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
         timestamp: Date.now(),
-        exercises: {}
+        exercises: {},
+        notes: {}
       };
 
       currentExercises.forEach(function(name) {
@@ -1198,6 +1247,11 @@
             weight: row.querySelector('.weight-input').value || 0
           });
         });
+        // Save note if present
+        const noteEl = document.querySelector('.note-textarea[data-note-for="' + name + '"]');
+        if (noteEl && noteEl.value.trim()) {
+          sessionData.notes[name] = noteEl.value.trim();
+        }
       });
 
       const hist = getHistory();
@@ -1258,6 +1312,15 @@
             line.textContent = 'Set ' + (i+1) + ': ' + s.reps + ' reps @ ' + s.weight + 'kg';
             entry.appendChild(line);
           });
+          // Show note if exists
+          if (session.notes && session.notes[exName]) {
+            const noteLine = document.createElement('div');
+            noteLine.className = 'set-line';
+            noteLine.style.fontStyle = 'italic';
+            noteLine.style.color = '#aaa';
+            noteLine.textContent = '📝 ' + session.notes[exName];
+            entry.appendChild(noteLine);
+          }
 
           const exHistory = exerciseData[exName] || [];
           if (exHistory.length >= 2) {
